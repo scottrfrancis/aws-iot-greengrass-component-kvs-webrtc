@@ -73,6 +73,18 @@ v4l2-ctl --list-formats-ext --device /dev/video0
 ```bash
 # change this command if necessary for different group or GGv2 user
 sudo usermod -aG video ggc_user
+
+# it is often valuable to add the current user to the video group as well
+sudo usermod -aG video $USER
+```
+
+**For the current user membership in the video group to become active, the user must log off/on from the system and/or reboot.**
+
+Verify group membership with
+
+```bash
+groups | grep video
+# if no results are returned, reboot, log off/on
 ```
 
 4. Verify Docker
@@ -91,6 +103,10 @@ sudo docker run hello-world
 ```bash
 # modify the user if your GGv2 installation has a different user account
 sudo usermod -aG docker ggc_user
+
+# and for the current user
+sudo usermod -aG docker $USER
+# and again will need to log off/on/reboot to take effect
 ```
 
 ## Part 2 - Build the Docker Container and test locally
@@ -155,7 +171,7 @@ AWS_ACCESS_KEY_ID=<your key id>
 AWS_SECRET_ACCESS_KEY=<your secret key>
 # if using cloud9 or a role, you may also have a session token
 #AWS_SESSION_TOKEN=<session token>
-AWS_KVS_CACERT_PATH=../certs/cert.pem
+AWS_KVS_CACERT_PATH=/certs/
 AWS_KVS_LOG_LEVEL=3 
 " >.env
 ```
@@ -477,6 +493,25 @@ v4l2-ctl --list-devices
 #        /dev/media0
 ```
 
+### Check the Container access to the Device and capabilities
+
+If the docker container isn't functioning properly, you can start the container interactively and run GStreamer pipelines and other command manually from _inside_ the container.
+
+Start the container interactively,
+ * passing the environment variables from `.env` with `--env-file`
+ * passing (and remapping if needed) the video device with `--device`, note the option to remap from host to (`:`) guest
+ * mounting a shared volume between container and host to view sample files, etc. with `-v`
+
+```bash
+mkdir -p /tmp/guest
+docker run \
+  --env-file ./.env \
+  --device=/dev/video0:/dev/video0 \
+  -v /tmp/guest:/host \
+  -it --entrypoint /bin/bash \
+  kvs
+```
+
 ### Check the device capabilities
 
 ```yaml
@@ -611,8 +646,8 @@ gst-launch-1.0  -e  \
   v4l2src device=/dev/video0 ! queue ! jpegdec ! \
   videoscale ! video/x-raw,width=1280,height=720 ! \
   videorate ! video/x-raw,framerate=30/1 ! \
-  videoconvert ! x264enc bframes=0 speed-preset=veryfast bitrate=512 \
-    byte-stream=TRUE tune=zerolatency ! \
+  videoconvert ! x264enc ! \
+  video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! \
   filesink location=test.mp4 sync=false
 
 # with an audio device

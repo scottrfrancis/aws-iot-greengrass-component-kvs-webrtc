@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
-ENV TZ=<your timezone, e.g. America/Los_Angeles>
-# ENV TZ=America/Los_Angeles
+# ENV TZ=<your timezone, e.g. America/Los_Angeles>
+ENV TZ=America/Los_Angeles
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 #
@@ -32,7 +32,7 @@ RUN apt-get -y update && apt-get install -y \
     libgstreamer-plugins-base1.0-dev \
     libgstreamer-plugins-bad1.0-dev \
 # dev utilities
-	# vim \
+	# vim  gdb \
 # Utilities to work with KPL samples and AWS
     awscli wget && \
 # and finalize...
